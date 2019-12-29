@@ -92,7 +92,7 @@ class c_comdef_admin_ajax_handler
             $returned_text = $this->GetMeetingHistory($this->my_http_vars['get_meeting_history']);
         } elseif (isset($this->my_http_vars['do_meeting_search'])) {
             $used_formats = array();
-            $returned_text = $this->TranslateToJSON($this->GetSearchResults($this->my_http_vars, $used_formats));
+            $returned_text = $this->CsvToJson($this->GetSearchResults($this->my_http_vars, $used_formats));
             header('Content-Type:application/json; charset=UTF-8');
         } elseif (isset($this->my_http_vars['do_update_world_ids'])) {
             $returned_text = $this->HandleMeetingWorldIDsUpdate();
@@ -267,7 +267,7 @@ class c_comdef_admin_ajax_handler
         $json_tool = new PhpJsonXmlArrayStringInterchanger;
         $used_formats = array();
         $meetings = $this->GetSearchResults(array('meeting_ids' => array_keys($meetingMap)), $used_formats);
-        $meetings = $this->TranslateToJSON($meetings);
+        $meetings = $this->CsvToJson($meetings);
         $meetings = $json_tool->convertJsonToArray($meetings, true);
         $map = array();
         foreach ($meetings as $meeting) {
@@ -1182,7 +1182,7 @@ class c_comdef_admin_ajax_handler
                     }
                     if ($meeting->UpdateToDB()) {
                         $used_formats = array();
-                        $result = $this->TranslateToJSON($this->GetSearchResults(array ( 'meeting_ids' => array ( $meeting->GetID() ) ), $used_formats));
+                        $result = $this->CsvToJson($this->GetSearchResults(array ( 'meeting_ids' => array ( $meeting->GetID() ) ), $used_formats));
                         if ($print_result) {
                             header('Content-Type:application/json; charset=UTF-8');
                             echo $result;
@@ -1316,7 +1316,7 @@ class c_comdef_admin_ajax_handler
         \returns a JSON string, with all the data in the CSV.
     */
     // phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
-    public function TranslateToJSON( $in_csv_data ///< An array of CSV data, with the first element being the field names.
+    public function CsvToJson($in_csv_data ///< An array of CSV data, with the first element being the field names.
                             )
     {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
