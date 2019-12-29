@@ -1445,7 +1445,7 @@ class c_comdef_admin_xml_handler
                 $result .= "<formats>";
             }
             $result3 = GetFormats($server, $langs, $formats_ar);
-            $result .= TranslateToXML($result3);
+            $result .= CsvToXml($result3);
         
             $result .= "</formats>";
         }
@@ -1850,6 +1850,7 @@ class c_comdef_admin_xml_handler
                                 )
     {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+        // TODO proper csv parsing
         require_once(dirname(dirname(dirname(__FILE__))).'/server/shared/Array2XML.php');
         $temp_keyed_array = array();
         $in_csv_data = explode("\n", $in_csv_data);

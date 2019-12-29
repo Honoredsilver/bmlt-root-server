@@ -45,6 +45,7 @@ require_once(dirname(__FILE__).'/../../server/shared/Array2XML.php');
 function parse_redirect(
     &$server    ///< A reference to an instance of c_comdef_server
 ) {
+    // TODO proper csv building
     $result = null;
     $http_vars = array_merge_recursive($_GET, $_POST);
     
@@ -104,7 +105,7 @@ function parse_redirect(
                 if (!isset($http_vars['getMeanLocationData'])) {
                     $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', trim(strtolower($_SERVER['SERVER_NAME'])).(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetSearchResults.php'));
                     $result .= "<meetings xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                    $result .= TranslateToXML($result2);
+                    $result .= CsvToXml($result2);
                     if ((isset($http_vars['get_used_formats']) || isset($http_vars['get_formats_only'])) && $formats_ar && is_array($formats_ar) && count($formats_ar)) {
                         if (isset($http_vars['get_formats_only'])) {
                             $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
@@ -114,7 +115,7 @@ function parse_redirect(
                             $result .= "<formats>";
                         }
                         $result3 = GetFormats($server, $langs, $formats_ar);
-                        $result .= TranslateToXML($result3);
+                        $result .= CsvToXml($result3);
                         $result .= "</formats>";
                     }
                     
@@ -254,22 +255,22 @@ function parse_redirect(
                     }
                 }
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON(GetSearchResults($http_vars, $formats_ar, $meanLocationData));
+                $result = CsvToJson(GetSearchResults($http_vars, $formats_ar, $meanLocationData));
                 if ((isset($http_vars['get_used_formats']) || isset($http_vars['get_formats_only']))) {
                     if (isset($http_vars['get_formats_only'])) {
                         $format_list = '[]';
                         if (isset($formats_ar) && is_array($formats_ar) && count($formats_ar)) {
-                            $format_list = TranslateToJSON(GetFormats($server, $langs, $formats_ar));
+                            $format_list = CsvToJson(GetFormats($server, $langs, $formats_ar));
                         }
                         
                         $result = '{"formats":'.$format_list.'}';
                     } else {
                         if (isset($http_vars['appendMeanLocationData'])) {
-                            $result = '{"meetings":'.$result.',"formats":'.TranslateToJSON(GetFormats($server, $langs, $formats_ar)).',"locationInfo":'.array2json($meanLocationData).'}';
+                            $result = '{"meetings":'.$result.',"formats":'.CsvToJson(GetFormats($server, $langs, $formats_ar)).',"locationInfo":'.array2json($meanLocationData).'}';
                         } else {
                             $format_list = '[]';
                             if (isset($formats_ar) && is_array($formats_ar) && count($formats_ar)) {
-                                $format_list = TranslateToJSON(GetFormats($server, $langs, $formats_ar));
+                                $format_list = CsvToJson(GetFormats($server, $langs, $formats_ar));
                             }
                             
                             $result = '{"meetings":'.$result.',"formats":'.$format_list.'}';
@@ -306,10 +307,10 @@ function parse_redirect(
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetFormats.php'));
                 $result .= "<formats xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                $result .= TranslateToXML($result2);
+                $result .= CsvToXml($result2);
                 $result .= "</formats>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
                 if (!$result) {
                     $result = '[]';
                 }
@@ -325,10 +326,10 @@ function parse_redirect(
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetServiceBodies.php'));
                 $result .= "<serviceBodies xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                $result .= TranslateToXML($result2);
+                $result .= CsvToXml($result2);
                 $result .= "</serviceBodies>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
                 if (!$result) {
                     $result = '[]';
                 }
@@ -364,9 +365,9 @@ function parse_redirect(
             
             if (isset($http_vars['xml_data'])) {
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetChanges.php'));
-                $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><changes xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">".TranslateToXML($result2)."</changes>";
+                $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><changes xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">".CsvToXml($result2)."</changes>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
                 if (!$result) {
                     $result = '[]';
                 }
@@ -381,10 +382,10 @@ function parse_redirect(
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/ServerInfo.php'));
                 $result .= "<serverInfo xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                $result .= TranslateToXML($result2);
+                $result .= CsvToXml($result2);
                 $result .= "</serverInfo>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
             } else {
                 $result = $result2;
             }
@@ -400,10 +401,10 @@ function parse_redirect(
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetCoverageArea.php'));
                 $result .= "<coverageArea xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                $result .= TranslateToXML($result2);
+                $result .= CsvToXml($result2);
                 $result .= "</coverageArea>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
             } else {
                 $result = $result2;
             }
@@ -427,10 +428,10 @@ function parse_redirect(
                     $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                     $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetFieldKeys.php'));
                     $result .= "<fields xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                    $result .= TranslateToXML($result2);
+                    $result .= CsvToXml($result2);
                     $result .= "</fields>";
                 } elseif (isset($http_vars['json_data'])) {
-                    $result = TranslateToJSON($result2);
+                    $result = CsvToJson($result2);
                 } else {
                     $result = $result2;
                 }
@@ -514,10 +515,10 @@ function parse_redirect(
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                 $xsd_uri = 'http://'.htmlspecialchars(str_replace('/client_interface/xml', '/client_interface/xsd', $_SERVER['SERVER_NAME'].(($_SERVER['SERVER_PORT'] != 80) ? ':'.$_SERVER['SERVER_PORT'] : '').dirname($_SERVER['SCRIPT_NAME']).'/GetFieldValues.php'));
                 $result .= "<fields xmlns=\"http://".$_SERVER['SERVER_NAME']."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://".$_SERVER['SERVER_NAME']." $xsd_uri\">";
-                $result .= str_replace("\t", ',', TranslateToXML($result2));
+                $result .= str_replace("\t", ',', CsvToXml($result2));
                 $result .= "</fields>";
             } elseif (isset($http_vars['json_data'])) {
-                $result = TranslateToJSON($result2);
+                $result = CsvToJson($result2);
             } else {
                 $result = str_replace("\t", ',', $result2);
             }
@@ -827,6 +828,7 @@ function GetSearchResults(
         }
         
         if (isset($in_http_vars['getMeanLocationData'])) {
+            // TODO: Proper csv parsing/building
             $result = '"average_center_latitude","average_center_longitude","average_radius_mi","average_radius_km","search_center_latitude","search_center_longitude","search_center_radius_mi","search_center_radius_km"'."\n";
             $result .= '"'.$avgLat.'","'.$avgLong.'","'.$avg_radiusMi.'","'.$avg_radiusKm.'","'.$centerLat.'","'.$centerLong.'","'.$hard_radiusMi.'","'.$hard_radiusKm.'"';
         }
@@ -834,7 +836,7 @@ function GetSearchResults(
     
     if (!isset($in_http_vars['getMeanLocationData']) && isset($in_http_vars['data_field_key']) && $in_http_vars['data_field_key']) {
         // At this point, we have everything in a CSV. We separate out just the field we want.
-        $temp_keyed_array = array();
+        // TODO: Proper csv parsing/building
         $result = explode("\n", $result);
         $keys = array_shift($result);
         $keys = explode("\",\"", trim($keys, '"'));
@@ -905,7 +907,7 @@ function GetFormats(
                         'format_type_enum',
                         );
     
-    $ret = null;
+    $handle = fopen('php://memory', 'rw');
     
     $formats_obj = $server->GetFormatsObj();
     if ($formats_obj instanceof c_comdef_formats) {
@@ -924,7 +926,8 @@ function GetFormats(
             $langs = array ( $in_lang => $langs[$in_lang] );
         }
 
-        $ret .= '"'.implode('","', $my_keys)."\"\n";
+        fputcsv($handle, $my_keys);
+
         foreach ($langs as $key => $value) {
             if ($in_formats) {
                 $format_array = $in_formats;
@@ -937,12 +940,8 @@ function GetFormats(
                     if ($format instanceof c_comdef_format) {
                         $localized_format = $server->GetOneFormat($format->GetSharedID(), $key);
                         if ($localized_format instanceof c_comdef_format) {
-                            $line = '';
+                            $line = array();
                             foreach ($my_keys as $ky) {
-                                if ($line) {
-                                    $line .= ',';
-                                }
-                                
                                 $val = '';
                                 
                                 switch ($ky) {
@@ -978,12 +977,12 @@ function GetFormats(
                                         $val = $localized_format->GetFormatType();
                                         break;
                                 }
-                                
-                                $line .= '"'.str_replace('"', '\"', trim($val)).'"';
+
+                                array_push($line, trim($val));
                             }
                             
                             if (in_array($localized_format->GetSharedID(), $used_formats)) {
-                                $ret .= "$line\n";
+                                fputcsv($handle, $line);
                             }
                         }
                     }
@@ -991,7 +990,10 @@ function GetFormats(
             }
         }
     }
-    
+
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
     return $ret;
 }
 
@@ -1004,42 +1006,44 @@ function GetFormats(
 function GetServiceBodies(
     &$server            ///< A reference to an instance of c_comdef_server
 ) {
-    $ret = array ();
+    $handle = fopen('php://memory', 'rw');
     $localized_strings = c_comdef_server::GetLocalStrings();
 
-    $ret[0] = '"id","parent_id","name","description","type","url","helpline","world_id"';
-    
+    $keys = array("id","parent_id","name","description","type","url","helpline","world_id");
     if ($localized_strings['include_service_body_email_in_semantic']) {
-        $ret[0] .= ',"contact_email"';
+        array_push($keys, "contact_email");
     }
+
+    fputcsv($handle, $keys);
     
     try {
         $array_obj = $server->GetServiceBodyArray();
         if (is_array($array_obj) && count($array_obj)) {
             foreach ($array_obj as &$sb) {
                 if ($sb instanceof c_comdef_service_body) {
-                    $row = array();
-                    $row[] = $sb->GetID();
-                    $row[] = $sb->GetOwnerID();
-                    $row[] = $sb->GetLocalName();
-                    $description = preg_replace('|[^\S]+?|', " ", $sb->GetLocalDescription());
-                    $row[] = $description;
-                    $row[] = $sb->GetSBType();
-                    $row[] = $sb->GetURI();
-                    $row[] = trim($sb->GetHelpline());
-                    $row[] = $sb->GetWorldID();
+                    $line = array();
+                    array_push($line, $sb->GetID());
+                    array_push($line, $sb->GetOwnerID());
+                    array_push($line, $sb->GetLocalName());
+                    array_push($line, preg_replace('|[^\S]+?|', " ", $sb->GetLocalDescription()));
+                    array_push($line, $sb->GetSBType());
+                    array_push($line, $sb->GetURI());
+                    array_push($line, $sb->GetHelpline());
+                    array_push($line, $sb->GetWorldID());
                     if ($localized_strings['include_service_body_email_in_semantic']) {
-                        $row[] = trim($sb->GetContactEmail());
+                        array_push($line, trim($sb->GetContactEmail()));
                     }
-                    $row = '"'.implode('","', $row).'"';
-                    $ret[] = $row;
+                    fputcsv($handle, $line);
                 }
             }
         }
     } catch (Exception $e) {
     }
 
-    return implode("\n", $ret);
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
+    return $ret;
 }
 
 /*******************************************************************/
@@ -1051,7 +1055,6 @@ function GetServiceBodies(
 function GetServerInfo()
 {
     require(dirname(__FILE__).'/../../server/config/get-config.php');
-    $ret = '';
     $version_array = GetServerVersion();
     $version_num = (intval($version_array[0]) * 1000000) + (intval($version_array[1]) * 1000) + intval($version_array[2]);
     $version_string = strval($version_array[0]).'.'.strval($version_array[1]).'.'.strval($version_array[2]);
@@ -1060,7 +1063,6 @@ function GetServerInfo()
     $localStrings = c_comdef_server::GetLocalStrings();
     $default_lang = strval($localStrings['enum']);
     $canAdmin = isset($g_enable_semantic_admin) && $g_enable_semantic_admin ? '1' : '0';
-    $centerLongLatZoom = implode(',', $localStrings['search_spec_map_center']);
     $canEmail = isset($g_enable_email_contact) && $g_enable_email_contact ? '1' : '0';
     $includeServiceBodiesOnEmails = isset($include_service_body_admin_on_emails) && $include_service_body_admin_on_emails ? '1' : '0';
     $changeDepth = strVal(intval($change_depth_for_meetings));
@@ -1077,14 +1079,58 @@ function GetServerInfo()
             $availableFields .= $key['key'];
         }
     }
+
+    $handle = fopen('php://memory', 'rw');
     
-    $ret = '"version","versionInt","langs","nativeLang","centerLongitude","centerLatitude","centerZoom","defaultDuration","regionBias","charSet","distanceUnits","semanticAdmin","emailEnabled","emailIncludesServiceBodies","changesPerMeeting","meeting_states_and_provinces","meeting_counties_and_sub_provinces","available_keys","google_api_key","dbVersion"'."\n";
-    $ret .= '"'.$version_string.'","'.strval($version_num).'","'.$lang_string.'","'.$default_lang.'",';
-    $ret .= '"'.strval($localStrings['search_spec_map_center']['longitude']).'","'.strval($localStrings['search_spec_map_center']['latitude']).'",';
-    $ret .= '"'.strval($localStrings['search_spec_map_center']['zoom']).'","'.$localStrings['default_duration_time'].'",';
-    $ret .= '"'.$localStrings['region_bias'].'","'.$localStrings['charset'].'","'.$localStrings['dist_units'].'","'.$canAdmin.'",';
-    $ret .= '"'.$canEmail.'","'.$includeServiceBodiesOnEmails.'","'.$changeDepth.'","'.implode(',', $localStrings['meeting_states_and_provinces']).'","'.implode(',', $localStrings['meeting_counties_and_sub_provinces']).'","'.str_replace('"', '\"', $availableFields).',root_server_uri,format_shared_id_list","'.$localStrings['google_api_key'].'","'.$dbVersion.'"';
-    
+    fputcsv($handle, array(
+        "version",
+        "versionInt",
+        "langs",
+        "nativeLang",
+        "centerLongitude",
+        "centerLatitude",
+        "centerZoom",
+        "defaultDuration",
+        "regionBias",
+        "charSet",
+        "distanceUnits",
+        "semanticAdmin",
+        "emailEnabled",
+        "emailIncludesServiceBodies",
+        "changesPerMeeting",
+        "meeting_states_and_provinces",
+        "meeting_counties_and_sub_provinces",
+        "available_keys",
+        "google_api_key",
+        "dbVersion"
+
+    ));
+    fputcsv($handle, array(
+        $version_string,
+        strval($version_num),
+        $lang_string,
+        $default_lang,
+        strval($localStrings['search_spec_map_center']['longitude']),
+        strval($localStrings['search_spec_map_center']['latitude']),
+        strval($localStrings['search_spec_map_center']['zoom']),
+        $localStrings['default_duration_time'],
+        $localStrings['region_bias'],
+        $localStrings['charset'],
+        $localStrings['dist_units'],
+        $canAdmin,
+        $canEmail,
+        $includeServiceBodiesOnEmails,
+        $changeDepth,
+        implode(',', $localStrings['meeting_states_and_provinces']),
+        implode(',', $localStrings['meeting_counties_and_sub_provinces']),
+        $availableFields . ',root_server_uri,format_shared_id_list',
+        $localStrings['google_api_key'],
+        $dbVersion
+    ));
+
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
     return $ret;
 }
 
@@ -1142,7 +1188,7 @@ function GetChanges(
     $in_meeting_id = null,  ///< Optional. If supplied, an ID for a particular meeting. Only changes for that meeting will be returned.
     $in_sb_id = null        ///< Optional. If supplied, an ID for a particular Service body. Only changes for that Service body will be returned.
 ) {
-    $ret = null;
+    $handle = fopen('php://memory', 'rw');
     
     try {
         $change_objects = c_comdef_server::GetChangesFromIDAndType('c_comdef_meeting', null, $in_start_date, $in_end_date);
@@ -1151,9 +1197,23 @@ function GetChanges(
             
             if (is_array($obj_array) && count($obj_array)) {
                 set_time_limit(max(30, intval(count($obj_array) / 20))); // Change requests can take a loooong time...
-                $localized_strings = c_comdef_server::GetLocalStrings();
                 include(dirname(__FILE__).'/../../server/config/get-config.php');
-                $ret = '"date_int","date_string","change_type","change_id","meeting_id","meeting_name","user_id","user_name","service_body_id","service_body_name","meeting_exists","details","json_data"'."\n";
+
+                fputcsv($handle, array(
+                    "date_int",
+                    "date_string",
+                    "change_type",
+                    "change_id",
+                    "meeting_id",
+                    "meeting_name",
+                    "user_id",
+                    "user_name",
+                    "service_body_id",
+                    "service_body_name",
+                    "meeting_exists",
+                    "details",
+                    "json_data"
+                ));
                 
                 // If they specify a Service body, we also look in "child" Service bodies, so we need to produce a flat array of IDs.
                 if (isset($in_sb_id) && $in_sb_id) {
@@ -1250,86 +1310,30 @@ function GetChanges(
                                 }
                                 
                                 $change_line = array();
-            
-                                if ($date_int) {
-                                    $change_line['date_int'] = $date_int;
-                                } else {
-                                    $change_line['date_int'] = 0;
-                                }
-                                
-                                if ($date_string) {
-                                    $change_line['date_string'] = $date_string;
-                                } else {
-                                    $change_line['date_string'] = '';
-                                }
-                                
-                                if ($change_type) {
-                                    $change_line['change_type'] = $change_type;
-                                } else {
-                                    $change_line['change_type'] = '';
-                                }
-                                
-                                if ($change_id) {
-                                    $change_line['change_id'] = $change_id;
-                                } else {
-                                    $change_line['change_id'] = 0;
-                                }
-                                
-                                if ($meeting_id) {
-                                    $change_line['meeting_id'] = $meeting_id;
-                                } else {
-                                    $change_line['meeting_id'] = 0;
-                                }
-                                
-                                if ($meeting_name) {
-                                    $change_line['meeting_name'] = $meeting_name;
-                                } else {
-                                    $change_line['meeting_name'] = '';
-                                }
-                                
-                                if ($user_id) {
-                                    $change_line['user_id'] = $user_id;
-                                } else {
-                                    $change_line['user_id'] = 0;
-                                }
-                                
-                                if ($user_name) {
-                                    $change_line['user_name'] = $user_name;
-                                } else {
-                                    $change_line['user_name'] = '';
-                                }
-                                
-                                if ($sb_id) {
-                                    $change_line['service_body_id'] = $sb_id;
-                                } else {
-                                    $change_line['service_body_id'] = '';
-                                }
-                                
-                                if ($sb_name) {
-                                    $change_line['service_body_name'] = $sb_name;
-                                } else {
-                                    $change_line['service_body_name'] = '';
-                                }
-                                
-                                $change_line['meeting_exists'] = $meeting_exists;
-                                
-                                if ($details) {
-                                    $change_line['details'] = $details;
-                                } else {
-                                    $change_line['details'] = '';
-                                }
+                                array_push($change_line, ($date_int ? $date_int : 0));
+                                array_push($change_line, ($date_string ? $date_string : ''));
+                                array_push($change_line, ($change_type ? $change_type : ''));
+                                array_push($change_line, ($change_id ? $change_id : 0));
+                                array_push($change_line, ($meeting_id ? $meeting_id : 0));
+                                array_push($change_line, ($meeting_name ? $meeting_name : ''));
+                                array_push($change_line, ($user_id ? $user_id : 0));
+                                array_push($change_line, ($user_name ? $user_name : ''));
+                                array_push($change_line, ($sb_id ? $sb_id : ''));
+                                array_push($change_line, ($sb_name ? $sb_name : ''));
+                                array_push($change_line, $meeting_exists);
+                                array_push($change_line, ($details ? $details : ''));
                         
-                                $json_data = MakeJSONDataObject($b_obj, 'before');
-                                
-                                if (($json_data != '') && ($a_obj instanceof c_comdef_meeting)) {
-                                    $json_data .= ',';
+                                $before = GetMeetingChangeObject($b_obj);
+                                $after = GetMeetingChangeObject($a_obj);
+                                $json_data = array();
+                                if (count($before)) {
+                                    $json_data['before'] = $before;
                                 }
-                                    
-                                $json_data .= MakeJSONDataObject($a_obj, 'after');
-                                
-                                $change_line['json_data'] = '{'.str_replace('"', '&quot;', $json_data).'}';
-                                
-                                $ret .= '"'.implode('","', $change_line)."\"\n";
+                                $json_data['after'] = $after;
+                                $json_data = json_encode($json_data);
+                                array_push($change_line, $json_data);
+
+                                fputcsv($handle, $change_line);
                             }
                         }
                     }
@@ -1339,20 +1343,22 @@ function GetChanges(
     } catch (Exception $e) {
     }
 
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
     return $ret;
 }
 
 /*******************************************************************/
 /**
-    \brief Converts a given c_comdef_meeting object to a JSON object string.
+    \brief Converts a given c_comdef_meeting object an associatve array ready for json encoding
 
-    \returns A string, containing the JSON Data. It is blank if no JSON Data.
+    \returns An associative array, if there is no data then the array is empty.
 */
-function MakeJSONDataObject(
-    $in_meeting_object, ///< The c_comdef_meeting object to be converted.
-    $in_object_name     ///< A name for the returned object.
+function GetMeetingChangeObject(
+    $in_meeting_object ///< The c_comdef_meeting object to be converted.
 ) {
-    $json_data = '';
+    $ret = array();
     
     if ($in_meeting_object instanceof c_comdef_meeting) {
         $keys = $in_meeting_object->GetMeetingDataKeys();
@@ -1377,43 +1383,17 @@ function MakeJSONDataObject(
                 
                     if (is_array($value)) {
                         if (count($value)) {
-                            for ($c = 0; $c < count($value); $c++) {
-                                $val = json_encode(trim($value[$c], '"'));
-                                $val = str_replace('&quot;', '"', $val);
-                                $val = str_replace('&amp;', '&', $val);
-                                $val = trim(preg_replace("|\s+|", ' ', $val), '"');
-                                $value[$c] = trim($val, "\\");
-                            }
-                                
-                            if ($json_data) {
-                                $json_data .= ',';
-                            }
-                
-                            $json_data .= '"'.$key.'":'.'["'.implode('","', $value).'"]';
+                            $ret[$key] = $value;
                         }
                     } else {
-                        $value = trim($value, "\\");
-                        $value = preg_replace("|^\"\"|", "\"&quot;", $value);
-                        $value = trim(json_encode($value), '"');
-                        $value = str_replace('&quot;', '"', $value);
-                        $value = str_replace('&amp;', '&', $value);
-                        $value = trim(preg_replace("|\s+|", ' ', $value), '\\');
-                        $value = trim($value, '"');
-                        if ($json_data) {
-                            $json_data .= ',';
-                        }
-                        $json_data .= '"'.$key.'":"'.$value.'"';
+                        $ret[$key] = $value;
                     }
                 }
             }
         }
-        
-        if ($json_data && $in_object_name) {
-            $json_data = '"'.$in_object_name.'":{'.$json_data.'}';
-        }
     }
     
-    return $json_data;
+    return $ret;
 }
 
 /*******************************************************************/
@@ -1445,39 +1425,30 @@ function HandleNoServer()
 
     \returns a JSON string, with all the data in the CSV.
 */
-function TranslateToJSON( $in_csv_data ///< An array of CSV data, with the first element being the field names.
+function CsvToJson($in_csv_data ///< An array of CSV data, with the first element being the field names.
                         )
 {
-    $temp_keyed_array = array();
-    $in_csv_data = explode("\n", $in_csv_data);
-    $keys = array_shift($in_csv_data);
-    $keys = explode("\",\"", trim($keys, '"'));
-    
-    foreach ($in_csv_data as $row) {
-        if ($row) {
-            $line = null;
-            $index = 0;
-            $row = explode('","', trim($row, '",'));
-            foreach ($row as $column) {
-                if (isset($column)) {
-                    $key = $keys[$index++];
-                    $value = str_replace("\t", ',', trim($column));
-                    
-                    if ($key == "json_data") {
-                        $value = trim($value, '"');
-                        $value = str_replace('&quot;', '"', $value);
-                    }
-                    
-                    $line[$key] = $value;
-                }
+    $ret = array();
+    $first = true;
+    $columnNames = null;
+    foreach (explode("\n", $in_csv_data) as $line) {
+        if ($first) {
+            $first = false;
+            $columnNames = str_getcsv($line);
+            continue;
+        }
+        if (trim($line)) {
+            $values = array();
+            $idx = 0;
+            foreach (str_getcsv($line) as $value) {
+                $columnName = $columnNames[$idx];
+                $values[$columnName] = $value;
+                $idx++;
             }
-            array_push($temp_keyed_array, $line);
+            array_push($ret, $values);
         }
     }
-    
-    $out_json_data = str_replace('\\\\"', '"', array2json($temp_keyed_array)); // HACK ALERT: TranslateToJSON does whacky things with my escaped quotes, so I undo that here.
-
-    return $out_json_data;
+    return json_encode($ret);
 }
 
 /*******************************************************************/
@@ -1486,36 +1457,38 @@ function TranslateToJSON( $in_csv_data ///< An array of CSV data, with the first
 
     \returns an XML string, with all the data in the CSV.
 */
-function TranslateToXML(   $in_csv_data        ///< An array of CSV data, with the first element being the field names.
+function CsvToXml($in_csv_data        ///< An array of CSV data, with the first element being the field names.
                         )
 {
-    $temp_keyed_array = array();
-    $in_csv_data = explode("\n", $in_csv_data);
-    $keys = array_shift($in_csv_data);
-    $keys = rtrim(ltrim($keys, '"'), '",');
-    $keys = preg_split('/","/', $keys);
-    
-    foreach ($in_csv_data as $row) {
-        if ($row) {
-            $line = null;
-            $index = 0;
-            $row_t = rtrim(ltrim($row, '"'), '",');
-            $row_t = preg_split('/","/', $row_t);
-            foreach ($row_t as $column) {
-                if (isset($column)) {
-                    $line[$keys[$index++]] = trim($column);
-                }
+    // TODO test this
+    $ret = array();
+    $first = true;
+    $columnNames = null;
+    foreach (explode("\n", $in_csv_data) as $line) {
+        if ($first) {
+            $first = false;
+            $columnNames = str_getcsv($line);
+            continue;
+        }
+        if (trim($line)) {
+            $values = array();
+            $idx = 0;
+            foreach (str_getcsv($line) as $value) {
+                $columnName = $columnNames[$idx];
+                $values[$columnName] = $value;
+                $idx++;
             }
-            array_push($temp_keyed_array, $line);
+            array_push($ret, $values);
         }
     }
 
-    $out_xml_data = array2xml($temp_keyed_array, 'not_used', false);
+    // TODO unfuck xml creation
+    $ret = array2xml($ret, 'not_used', false);
     // HACK ALERT: Undoing the poopiness done by TranslateToXML.
-    $out_xml_data = str_replace("&aamp;quot;", "&quot;", $out_xml_data);
-    $out_xml_data = str_replace("&amp;quot;", "&quot;", $out_xml_data);
-    $out_xml_data = str_replace("\\&quot;", "&quot;", $out_xml_data);
-    $out_xml_data = str_replace("&ququot;", "&quot;", $out_xml_data);
+    $ret = str_replace("&aamp;quot;", "&quot;", $ret);
+    $ret = str_replace("&amp;quot;", "&quot;", $ret);
+    $ret = str_replace("\\&quot;", "&quot;", $ret);
+    $ret = str_replace("&ququot;", "&quot;", $ret);
 
-    return $out_xml_data;
+    return $ret;
 }
