@@ -283,22 +283,16 @@ function DisplaySearchResultsCSV(
     $in_supress_hidden_concat = false,  ///< If true, then hidden fields will not have their prompts encoded
     $in_editor_only = false     ///< If true, then only meetings for which the current logged-in user can edit/observe are returned.
 ) {
-    $ret = null;
+    $handle = fopen('php://memory', 'rw');
     require_once(dirname(__FILE__).'/c_comdef_meeting_search_manager.class.php');
 
     $search_manager = new c_comdef_meeting_search_manager;
     
     if ($search_manager instanceof c_comdef_meeting_search_manager) {
         $localized_strings = c_comdef_server::GetLocalStrings();
-
-        $lang_enum = c_comdef_server::GetServer()->GetLocalLang();
     
         // This can be changed in the auto config.
         include(dirname(__FILE__).'/../../server/config/get-config.php');
-    
-        if (isset($in_http_vars['lang_enum']) && $in_http_vars['lang_enum']) {
-            $lang_enum = $in_http_vars['lang_enum'];
-        }
         
         if (!isset($in_http_vars['results_per_page'])) {
             $in_http_vars['results_per_page'] = 0;
@@ -384,18 +378,17 @@ function DisplaySearchResultsCSV(
             if (!in_array('meeting_name', $keys)) {
                 $keys[] = 'meeting_name';
             }
-            
             $keys[] = 'root_server_uri';
             $keys[] = 'format_shared_id_list';
-            
-            $ret = '"'.join('","', $keys).'"';
+            $keys = array_values($keys);
 
-            $formats = c_comdef_server::GetServer()->GetFormatsObj();
+            fputcsv($handle, $keys);
+
+            $duration_time_idx = array_search("duration_time", $keys);
+            $format_shared_id_list_idx = array_search("format_shared_id_list", $keys);
+            $root_server_uri_idx = array_search("root_server_uri", $keys);
+
             $formats_keys = array();
-            $formats_keys_header = array();
-            
-            $ret .= "\n";
-       
             $in_ar = $page_data->GetSearchResultsAsArray();
         
             if (isset($return_results) && is_array($return_results)) {
@@ -409,7 +402,6 @@ function DisplaySearchResultsCSV(
                 if ($mtg_obj instanceof c_comdef_meeting) {
                     if (!$in_editor_only || $mtg_obj->UserCanObserve()) {
                         $format_shared_id_list = array();
-                        $first = true;
                         foreach ($keys as $key) {
                             if (trim($key)) {
                                 $val = $mtg_obj->GetMeetingDataValue($key);
@@ -504,20 +496,20 @@ function DisplaySearchResultsCSV(
                     
                                 $val = trim(preg_replace("|[\n\r]+|", "; ", $val));
                         
-                                $line[$key] = $val;
+                                $line[] = $val;
                             }
                         }
                     
-                        if (!isset($line['duration_time']) || !$line['duration_time'] || ($line['duration_time'] == '00:00:00')) {
-                            $line['duration_time'] = $localized_strings['default_duration_time'];
+                        if (!isset($line[$duration_time_idx]) || !$line[$duration_time_idx] || ($line[$duration_time_idx] == '00:00:00')) {
+                            $line[$duration_time_idx] = $localized_strings['default_duration_time'];
                         }
                         
                         if (isset($format_shared_id_list) && is_array($format_shared_id_list) && count($format_shared_id_list)) {
                             sort($format_shared_id_list);
-                            $line['format_shared_id_list'] = implode(',', $format_shared_id_list);
+                            $line[$format_shared_id_list_idx] = implode(',', $format_shared_id_list);
                         }
                             
-                        $line['root_server_uri'] = dirname(dirname(GetURLToMainServerDirectory(true)));
+                        $line[$root_server_uri_idx] = dirname(dirname(GetURLToMainServerDirectory(true)));
                     
                         if (!$mtg_obj->IsPublished() && !$mtg_obj->UserCanObserve(c_comdef_server::GetCurrentUserObj())) {
                             $line = null;
@@ -527,10 +519,8 @@ function DisplaySearchResultsCSV(
                             if (is_array($return_array)) {
                                 array_push($return_array, $line);
                             }
-                
-                            $ret .= '"'.join('","', $line).'"';
-                    
-                            $ret .= "\n";
+
+                            fputcsv($handle, $line);
                         }
                     }
                 }
@@ -538,6 +528,9 @@ function DisplaySearchResultsCSV(
         }
     }
 
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
     return $ret;
 }
 
