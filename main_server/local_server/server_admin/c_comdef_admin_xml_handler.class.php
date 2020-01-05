@@ -1850,31 +1850,30 @@ class c_comdef_admin_xml_handler
                                 )
     {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
-        // TODO proper csv parsing
         require_once(dirname(dirname(dirname(__FILE__))).'/server/shared/Array2XML.php');
-        $temp_keyed_array = array();
-        $in_csv_data = explode("\n", $in_csv_data);
-        $keys = array_shift($in_csv_data);
-        $keys = rtrim(ltrim($keys, '"'), '",');
-        $keys = preg_split('/","/', $keys);
-    
-        foreach ($in_csv_data as $row) {
-            if ($row) {
-                $line = null;
-                $index = 0;
-                $row_t = rtrim(ltrim($row, '"'), '",');
-                $row_t = preg_split('/","/', $row_t);
-                foreach ($row_t as $column) {
-                    if (isset($column)) {
-                        $line[$keys[$index++]] = trim($column);
-                    }
+        $ret = array();
+        $first = true;
+        $columnNames = null;
+        foreach (explode("\n", $in_csv_data) as $line) {
+            if ($first) {
+                $first = false;
+                $columnNames = str_getcsv($line);
+                continue;
+            }
+            if (trim($line)) {
+                $values = array();
+                $idx = 0;
+                foreach (str_getcsv($line) as $value) {
+                    $columnName = $columnNames[$idx];
+                    $values[$columnName] = $value;
+                    $idx++;
                 }
-                array_push($temp_keyed_array, $line);
+                array_push($ret, $values);
             }
         }
 
-        $out_xml_data = array2xml($temp_keyed_array, 'not_used', false);
+        $ret = array2xml($ret, 'not_used', false);
 
-        return $out_xml_data;
+        return $ret;
     }
 }
