@@ -45,7 +45,6 @@ require_once(dirname(__FILE__).'/../../server/shared/Array2XML.php');
 function parse_redirect(
     &$server    ///< A reference to an instance of c_comdef_server
 ) {
-    // TODO proper csv building
     $result = null;
     $http_vars = array_merge_recursive($_GET, $_POST);
     
@@ -132,8 +131,7 @@ function parse_redirect(
                     $result .= "</locationInfo>";
                 }
             } elseif (isset($http_vars['gpx_data'])) {
-                $result2 = GetSearchResults($http_vars, $formats_ar);
-                $result2 = returnArrayFromCSV(explode("\n", $result2));
+                $result2 = CsvToArray(GetSearchResults($http_vars, $formats_ar));
                 if (is_array($result2) && count($result2)) {
                     $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                     $result .= "<gpx version=\"1.0\" xmlns=\"http://".htmlspecialchars(trim(strtolower($_SERVER['SERVER_NAME'])))."\" xmlns:xsn=\"http://www.w3.org/2001/XMLSchema-instance\" xsn:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">";
@@ -185,8 +183,7 @@ function parse_redirect(
                     $result .= '</gpx>';
                 }
             } elseif (isset($http_vars['kml_data'])) {
-                $result2 = GetSearchResults($http_vars, $formats_ar);
-                $result2 = returnArrayFromCSV(explode("\n", $result2));
+                $result2 = CsvToArray(GetSearchResults($http_vars, $formats_ar));
                 if (is_array($result2) && count($result2)) {
                     $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
                     $result .= '<kml xmlns="http://www.opengis.net/kml/2.2">';
@@ -230,10 +227,10 @@ function parse_redirect(
                     $result .= '</kml>';
                 }
             } elseif (isset($http_vars['poi_data'])) {
-                $result2 = GetSearchResults($http_vars, $formats_ar);
-                $result2 = returnArrayFromCSV(explode("\n", $result2));
+                $result2 = CsvToArray(GetSearchResults($http_vars, $formats_ar));
+                $handle = fopen('php://memory', 'rw');
                 if (is_array($result2) && count($result2)) {
-                    $result = "lon,lat,name,desc\n";
+                    fputcsv($handle, array("lon", "lat", "name", "desc"));
                     foreach ($result2 as $meeting) {
                         $desc = htmlspecialchars_decode(prepareSimpleLine($meeting));
                     
@@ -250,9 +247,12 @@ function parse_redirect(
                         $lat = floatval($meeting['latitude']);
                     
                         if ($lng || $lat) {
-                            $result .= '"'.$lng.'","'.$lat.'","'.$name.'","'.$desc.'"'."\n";
+                            fputcsv($handle, array($lng, $lat, $name, $desc));
                         }
                     }
+                    fseek($handle, 0);
+                    $result = stream_get_contents($handle);
+                    fclose($handle);
                 }
             } elseif (isset($http_vars['json_data'])) {
                 $result = CsvToJson(GetSearchResults($http_vars, $formats_ar, $meanLocationData));
@@ -676,38 +676,34 @@ function CSVHandleNawsDump(
 
     \returns an associative array. Each main element will be one line, and each line will be an associative array of fields. If a field is not present in the line, it is not included.
 */
-function returnArrayFromCSV( $inCSVArray   ///< A array of CSV data, split as lines (each element is a single text line of CSV data). the first line is the header (array keys).
-)
+function CsvToArray($csv)
 {
-    $ret = null;
-    
-    $desc_line = $inCSVArray[0];    // Get the field names.
-    $desc_line = explode('","', trim($desc_line, '"'));
-    
-    for ($index = 1; $index < count($inCSVArray); $index++) {
-        $interim_line = explode('","', trim($inCSVArray[$index], '"'));
-
-        if ($interim_line && count($interim_line)) {
-            $result = null;
-            
-            $interim_line = array_combine($desc_line, $interim_line);
-            
-            foreach ($interim_line as $key => $value) {
-                $value = trim($value);
-                
-                if ($value) {
-                    $result[$key] = $value;
-                }
-            }
-            
-            if (is_array($result) && count($result)) {
-                $ret[] = $result;
-            }
+    $ret = array();
+    $first = true;
+    $columnNames = null;
+    $fp = fopen("php://memory", "r+");
+    fputs($fp, $csv);
+    rewind($fp);
+    while (($line = fgetcsv($fp)) !== false) {
+        if ($first) {
+            $first = false;
+            $columnNames = $line;
+            continue;
         }
+
+        $values = array();
+        $idx = 0;
+        foreach ($line as $value) {
+            $columnName = $columnNames[$idx];
+            $values[$columnName] = $value;
+            $idx++;
+        }
+        array_push($ret, $values);
     }
-        
+    fclose($fp);
     return $ret;
 }
+
 
 /*******************************************************************/
 /**
