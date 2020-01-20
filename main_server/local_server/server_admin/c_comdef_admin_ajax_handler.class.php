@@ -1323,23 +1323,26 @@ class c_comdef_admin_ajax_handler
         $ret = array();
         $first = true;
         $columnNames = null;
-        foreach (explode("\n", $in_csv_data) as $line) {
+        $fp = fopen("php://memory", "r+");
+        fputs($fp, $in_csv_data);
+        rewind($fp);
+        while (($line = fgetcsv($fp)) !== FALSE) {
             if ($first) {
                 $first = false;
-                $columnNames = str_getcsv($line);
+                $columnNames = $line;
                 continue;
             }
-            if (trim($line)) {
-                $values = array();
-                $idx = 0;
-                foreach (str_getcsv($line) as $value) {
-                    $columnName = $columnNames[$idx];
-                    $values[$columnName] = $value;
-                    $idx++;
-                }
-                array_push($ret, $values);
+
+            $values = array();
+            $idx = 0;
+            foreach ($line as $value) {
+                $columnName = $columnNames[$idx];
+                $values[$columnName] = $value;
+                $idx++;
             }
+            array_push($ret, $values);
         }
+        fclose($fp);
         return json_encode($ret);
     }
 }

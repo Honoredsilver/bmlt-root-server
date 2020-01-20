@@ -134,7 +134,7 @@ class c_comdef_admin_xml_handler
             }
             
             $ret .= '"'.implode('","', $change_line).'"'."\n";
-            $ret = $this->TranslateCSVToXML($ret);
+            $ret = $this->CSVToXML($ret);
             $ret = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<meeting xmlns=\"http://".c_comdef_htmlspecialchars($_SERVER['SERVER_NAME'])."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"".$this->getMainURL()."client_interface/xsd/RestoreDeletedMeeting.php\">$ret</meeting>";
         } else {
             $ret = '<h1>PROGRAM ERROR (MEETING FETCH FAILED)</h1>';
@@ -309,7 +309,7 @@ class c_comdef_admin_xml_handler
             }
             
             // We get the changes as CSV, then immediately turn them into XML.
-            $ret = $this->TranslateCSVToXML($this->get_changes_as_csv($start_date, $end_date, $meeting_id, $user_id, $service_body_id));
+            $ret = $this->CSVToXML($this->get_changes_as_csv($start_date, $end_date, $meeting_id, $user_id, $service_body_id));
             $ret = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<changes xmlns=\"http://".c_comdef_htmlspecialchars($_SERVER['SERVER_NAME'])."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"".$this->getMainURL()."client_interface/xsd/GetChanges.php\">$ret</changes>";
         }
         
@@ -472,7 +472,7 @@ class c_comdef_admin_xml_handler
             
             // We get the deleted meetings as CSV, then immediately turn them into XML.
             $ret = $this->get_deleted_meetings_as_csv($start_date, $end_date, $meeting_id, $user_id, $service_body_id);
-            $ret = $this->TranslateCSVToXML($ret);
+            $ret = $this->CSVToXML($ret);
             $ret = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<meetings xmlns=\"http://".c_comdef_htmlspecialchars($_SERVER['SERVER_NAME'])."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"".$this->getMainURL()."client_interface/xsd/GetDeletedMeetings.php\">$ret</meetings>";
         } else {
             $ret = '<h1>NOT AUTHORIZED</h1>';
@@ -1437,7 +1437,7 @@ class c_comdef_admin_xml_handler
         
         
         $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<meetings xmlns=\"http://".c_comdef_htmlspecialchars($_SERVER['SERVER_NAME'])."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"".$this->getMainURL()."client_interface/xsd/GetSearchResults.php\">";
-        $result .= $this->TranslateCSVToXML($result2);
+        $result .= $this->CSVToXML($result2);
         if ((isset($http_vars['get_used_formats']) || isset($http_vars['get_formats_only'])) && $formats_ar && is_array($formats_ar) && count($formats_ar)) {
             if (isset($http_vars['get_formats_only'])) {
                 $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<formats xmlns=\"http://".c_comdef_htmlspecialchars($_SERVER['SERVER_NAME'])."\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"".$this->getMainURL()."client_interface/xsd/GetFormats.php\">";
@@ -1846,7 +1846,7 @@ class c_comdef_admin_xml_handler
         \returns an XML string, with all the data in the CSV.
     */
     // phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
-    public function TranslateCSVToXML(    $in_csv_data    ///< An array of CSV data, with the first element being the field names.
+    public function CSVToXML($in_csv_data    ///< An array of CSV data, with the first element being the field names.
                                 )
     {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
@@ -1854,24 +1854,28 @@ class c_comdef_admin_xml_handler
         $ret = array();
         $first = true;
         $columnNames = null;
-        foreach (explode("\n", $in_csv_data) as $line) {
+        $fp = fopen("php://memory", "r+");
+        fputs($fp, $in_csv_data);
+        rewind($fp);
+        while (($line = fgetcsv($fp)) !== FALSE) {
             if ($first) {
                 $first = false;
-                $columnNames = str_getcsv($line);
+                $columnNames = $line;
                 continue;
             }
-            if (trim($line)) {
-                $values = array();
-                $idx = 0;
-                foreach (str_getcsv($line) as $value) {
-                    $columnName = $columnNames[$idx];
-                    $values[$columnName] = $value;
-                    $idx++;
-                }
-                array_push($ret, $values);
-            }
-        }
 
+            $values = array();
+            $idx = 0;
+            foreach ($line as $value) {
+                $columnName = $columnNames[$idx];
+                $values[$columnName] = $value;
+                $idx++;
+            }
+            array_push($ret, $values);
+        }
+        fclose($fp);
+
+        // TODO unfuck xml creation
         $ret = array2xml($ret, 'not_used', false);
 
         return $ret;

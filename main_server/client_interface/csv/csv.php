@@ -828,40 +828,72 @@ function GetSearchResults(
         }
         
         if (isset($in_http_vars['getMeanLocationData'])) {
-            // TODO: Proper csv parsing/building
-            $result = '"average_center_latitude","average_center_longitude","average_radius_mi","average_radius_km","search_center_latitude","search_center_longitude","search_center_radius_mi","search_center_radius_km"'."\n";
-            $result .= '"'.$avgLat.'","'.$avgLong.'","'.$avg_radiusMi.'","'.$avg_radiusKm.'","'.$centerLat.'","'.$centerLong.'","'.$hard_radiusMi.'","'.$hard_radiusKm.'"';
+            $handle = fopen('php://memory', 'rw');
+            fputcsv($handle, array(
+                "average_center_latitude",
+                "average_center_longitude",
+                "average_radius_mi",
+                "average_radius_km",
+                "search_center_latitude",
+                "search_center_longitude",
+                "search_center_radius_mi",
+                "search_center_radius_km"
+            ));
+            fputcsv($handle, array(
+                $avgLat,
+                $avgLong,
+                $avg_radiusMi,
+                $avg_radiusKm,
+                $centerLat,
+                $centerLong,
+                $hard_radiusMi,
+                $hard_radiusKm
+            ));
+            fseek($handle, 0);
+            $result = stream_get_contents($handle);
+            fclose($handle);
         }
     }
     
     if (!isset($in_http_vars['getMeanLocationData']) && isset($in_http_vars['data_field_key']) && $in_http_vars['data_field_key']) {
         // At this point, we have everything in a CSV. We separate out just the field we want.
-        // TODO: Proper csv parsing/building
-        $result = explode("\n", $result);
-        $keys = array_shift($result);
-        $keys = explode("\",\"", trim($keys, '"'));
-        $the_keys = explode(',', $in_http_vars['data_field_key']);
-        
-        $result2 = array();
-        foreach ($result as $row) {
-            if ($row) {
-                $index = 0;
-                $row = explode('","', trim($row, '",'));
-                $row_columns = array();
-                foreach ($row as $column) {
-                    if (!$column) {
-                        $column = ' ';
-                    }
-                    if (in_array($keys[$index++], $the_keys)) {
-                        array_push($row_columns, $column);
+        $handle = fopen("php://memory", "r+");
+        fputs($handle, $result);
+        rewind($handle);
+        $returnKeys = explode(',', $in_http_vars['data_field_key']);
+        $returnIndexes = array();
+        $result2 = array($returnKeys);
+        $first = true;
+        while (($line = fgetcsv($handle)) !== FALSE) {
+            if ($first) {
+                $first = false;
+                foreach ($returnKeys as $returnKey) {
+                    $index = array_search($returnKey, $line);
+                    if ($index !== FALSE) {
+                        $returnIndexes[] = $index;
                     }
                 }
-                $result2[$row[0]] = '"'.implode('","', $row_columns).'"';
+                continue;
             }
-        }
 
-        $the_keys = array_intersect($keys, $the_keys);
-        $result = '"'.implode('","', $the_keys)."\"\n".implode("\n", $result2);
+            $row = array();
+            foreach ($returnIndexes as $idx) {
+                if ($idx < count($line)) {
+                    array_push($row, $line[$idx]);
+                }
+            }
+            array_push($result2, $row);
+        }
+        fclose($handle);
+
+        // Convert array back to csv
+        $handle = fopen("php://memory", "rw");
+        foreach ($result2 as $row) {
+            fputcsv($handle, $row);
+        }
+        fseek($handle, 0);
+        $result = stream_get_contents($handle);
+        fclose($handle);
     }
     return $result;
 }
@@ -1431,23 +1463,26 @@ function CsvToJson($in_csv_data ///< An array of CSV data, with the first elemen
     $ret = array();
     $first = true;
     $columnNames = null;
-    foreach (explode("\n", $in_csv_data) as $line) {
+    $fp = fopen("php://memory", "r+");
+    fputs($fp, $in_csv_data);
+    rewind($fp);
+    while (($line = fgetcsv($fp)) !== FALSE) {
         if ($first) {
             $first = false;
-            $columnNames = str_getcsv($line);
+            $columnNames = $line;
             continue;
         }
-        if (trim($line)) {
-            $values = array();
-            $idx = 0;
-            foreach (str_getcsv($line) as $value) {
-                $columnName = $columnNames[$idx];
-                $values[$columnName] = $value;
-                $idx++;
-            }
-            array_push($ret, $values);
+
+        $values = array();
+        $idx = 0;
+        foreach ($line as $value) {
+            $columnName = $columnNames[$idx];
+            $values[$columnName] = $value;
+            $idx++;
         }
+        array_push($ret, $values);
     }
+    fclose($fp);
     return json_encode($ret);
 }
 
@@ -1460,27 +1495,29 @@ function CsvToJson($in_csv_data ///< An array of CSV data, with the first elemen
 function CsvToXml($in_csv_data        ///< An array of CSV data, with the first element being the field names.
                         )
 {
-    // TODO test this
     $ret = array();
     $first = true;
     $columnNames = null;
-    foreach (explode("\n", $in_csv_data) as $line) {
+    $fp = fopen("php://memory", "r+");
+    fputs($fp, $in_csv_data);
+    rewind($fp);
+    while (($line = fgetcsv($fp)) !== FALSE) {
         if ($first) {
             $first = false;
-            $columnNames = str_getcsv($line);
+            $columnNames = $line;
             continue;
         }
-        if (trim($line)) {
-            $values = array();
-            $idx = 0;
-            foreach (str_getcsv($line) as $value) {
-                $columnName = $columnNames[$idx];
-                $values[$columnName] = $value;
-                $idx++;
-            }
-            array_push($ret, $values);
+
+        $values = array();
+        $idx = 0;
+        foreach ($line as $value) {
+            $columnName = $columnNames[$idx];
+            $values[$columnName] = $value;
+            $idx++;
         }
+        array_push($ret, $values);
     }
+    fclose($fp);
 
     // TODO unfuck xml creation
     $ret = array2xml($ret, 'not_used', false);
