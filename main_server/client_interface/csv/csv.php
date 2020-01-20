@@ -419,7 +419,7 @@ function parse_redirect(
             
                 foreach ($keys as $key) {
                     if (($key['visibility'] != 1) && ($key['key'] != 'published') && ($key['key'] != 'shared_group_id_bigint')) {
-                        fputcsv($handle, array($key['key'], $key['field_prompt']));;
+                        fputcsv($handle, array($key['key'], $key['field_prompt']));
                     }
                 }
 
