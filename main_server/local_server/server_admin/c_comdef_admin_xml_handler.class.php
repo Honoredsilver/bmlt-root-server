@@ -68,6 +68,7 @@ class c_comdef_admin_xml_handler
     public function get_meeting_data($meeting_id)
     {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+        // TODO fix csv building
         $ret = '';
         
         $meeting_object = c_comdef_server::GetOneMeeting($meeting_id);
@@ -496,6 +497,7 @@ class c_comdef_admin_xml_handler
         $in_sb_id = null        ///< Optional. If supplied, an ID for a particular Service body. Only deletions for meetings in that Service body will be returned. If this is an array, then multiple Service bodies will be searched.
     ) {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+        // TODO fix csv building
         $ret = null;
         try {
             $change_objects = c_comdef_server::GetChangesFromIDAndType('c_comdef_meeting', null, $in_start_date, $in_end_date);
@@ -743,6 +745,7 @@ class c_comdef_admin_xml_handler
         $in_change_type = 'c_comdef_meeting'    ///< This is the change type. Default is meeting change (NOTE: This function needs work to handle other types, but I figured I'd put in a hook for later).
     ) {
         // phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+        // TODO fix csv building
         $ret = null;
         try {
             // Start by getting every meeting change between the given dates.
@@ -1407,6 +1410,7 @@ class c_comdef_admin_xml_handler
     
         if (isset($this->http_vars['data_field_key']) && $this->http_vars['data_field_key']) {
             // At this point, we have everything in a CSV. We separate out just the field we want.
+            // TODO Fix csv parsing
             $temp_keyed_array = array();
             $result = explode("\n", $result);
             $keys = array_shift($result);
