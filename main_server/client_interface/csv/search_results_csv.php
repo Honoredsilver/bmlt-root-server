@@ -384,10 +384,6 @@ function DisplaySearchResultsCSV(
 
             fputcsv($handle, $keys);
 
-            $duration_time_idx = array_search("duration_time", $keys);
-            $format_shared_id_list_idx = array_search("format_shared_id_list", $keys);
-            $root_server_uri_idx = array_search("root_server_uri", $keys);
-
             $formats_keys = array();
             $in_ar = $page_data->GetSearchResultsAsArray();
         
@@ -496,20 +492,20 @@ function DisplaySearchResultsCSV(
                     
                                 $val = trim(preg_replace("|[\n\r]+|", "; ", $val));
                         
-                                $line[] = $val;
+                                $line[$key] = $val;
                             }
                         }
                     
-                        if (!isset($line[$duration_time_idx]) || !$line[$duration_time_idx] || ($line[$duration_time_idx] == '00:00:00')) {
-                            $line[$duration_time_idx] = $localized_strings['default_duration_time'];
+                        if (!isset($line['duration_time']) || !$line['duration_time'] || ($line['duration_time'] == '00:00:00')) {
+                            $line['duration_time'] = $localized_strings['default_duration_time'];
                         }
                         
                         if (isset($format_shared_id_list) && is_array($format_shared_id_list) && count($format_shared_id_list)) {
                             sort($format_shared_id_list);
-                            $line[$format_shared_id_list_idx] = implode(',', $format_shared_id_list);
+                            $line['format_shared_id_list'] = implode(',', $format_shared_id_list);
                         }
                             
-                        $line[$root_server_uri_idx] = dirname(dirname(GetURLToMainServerDirectory(true)));
+                        $line['root_server_uri'] = dirname(dirname(GetURLToMainServerDirectory(true)));
                     
                         if (!$mtg_obj->IsPublished() && !$mtg_obj->UserCanObserve(c_comdef_server::GetCurrentUserObj())) {
                             $line = null;
@@ -623,8 +619,9 @@ function ReturnNAWSFormatCSV(
     $ret_array = array ();  // If we supply an array as a second parameter, we will get the dump returned in a two-dimensional array.
     DisplaySearchResultsCSV($in_http_vars, $ret_array);  // Start off by getting the CSV dump in the same manner as the normal CSV dump.
 
+    $handle = fopen('php://memory', 'rw');
     if (is_array($ret_array) && count($ret_array)) {
-        $ret = '"'.join('","', array_keys($transfer_dictionary)).'"'; // This is the header line.
+        fputcsv($handle, array_keys($transfer_dictionary));
         foreach ($ret_array as $one_meeting) {
             if (is_array($one_meeting) && count($one_meeting)) {
                 $line = array();
@@ -642,7 +639,7 @@ function ReturnNAWSFormatCSV(
                 if (is_array($line)
                     &&  count($line)
                     &&  ($one_meeting['published'] || (isset($one_meeting['worldid_mixed']) && $one_meeting['worldid_mixed'])) ) {
-                    $ret .= "\n".'"'.join('","', $line).'"';
+                    fputcsv($handle, $line);
                 }
             }
         }
@@ -653,11 +650,14 @@ function ReturnNAWSFormatCSV(
     if (is_array($del_meetings) && count($del_meetings)) {
         foreach ($del_meetings as $one_meeting) {
             if (is_array($one_meeting) && count($one_meeting)) {
-                $ret .= "\n".'"'.join('","', $one_meeting).'"';
+                fputcsv($handle, $one_meeting);
             }
         }
     }
-    
+
+    fseek($handle, 0);
+    $ret = stream_get_contents($handle);
+    fclose($handle);
     return $ret;
 }
 
