@@ -1857,7 +1857,7 @@ class c_comdef_admin_xml_handler
         $fp = fopen("php://memory", "r+");
         fputs($fp, $in_csv_data);
         rewind($fp);
-        while (($line = fgetcsv($fp)) !== FALSE) {
+        while (($line = fgetcsv($fp)) !== false) {
             if ($first) {
                 $first = false;
                 $columnNames = $line;

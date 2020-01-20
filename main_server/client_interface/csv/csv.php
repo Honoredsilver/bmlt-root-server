@@ -864,12 +864,12 @@ function GetSearchResults(
         $returnIndexes = array();
         $result2 = array($returnKeys);
         $first = true;
-        while (($line = fgetcsv($handle)) !== FALSE) {
+        while (($line = fgetcsv($handle)) !== false) {
             if ($first) {
                 $first = false;
                 foreach ($returnKeys as $returnKey) {
                     $index = array_search($returnKey, $line);
-                    if ($index !== FALSE) {
+                    if ($index !== false) {
                         $returnIndexes[] = $index;
                     }
                 }
@@ -1466,7 +1466,7 @@ function CsvToJson($in_csv_data ///< An array of CSV data, with the first elemen
     $fp = fopen("php://memory", "r+");
     fputs($fp, $in_csv_data);
     rewind($fp);
-    while (($line = fgetcsv($fp)) !== FALSE) {
+    while (($line = fgetcsv($fp)) !== false) {
         if ($first) {
             $first = false;
             $columnNames = $line;
@@ -1501,7 +1501,7 @@ function CsvToXml($in_csv_data        ///< An array of CSV data, with the first 
     $fp = fopen("php://memory", "r+");
     fputs($fp, $in_csv_data);
     rewind($fp);
-    while (($line = fgetcsv($fp)) !== FALSE) {
+    while (($line = fgetcsv($fp)) !== false) {
         if ($first) {
             $first = false;
             $columnNames = $line;
