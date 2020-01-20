@@ -911,6 +911,7 @@ function GetCoverageArea()
     $ret = null;
     
     if (isset($result) && is_array($result) && count($result)) {
+        // TODO fix csv building
         $ret = array ( '"nw_corner_longitude","nw_corner_latitude","se_corner_longitude","se_corner_latitude"' );
         $ret[1] = '"'.strval($result["nw_corner"]["longitude"]).'","'.strval($result["nw_corner"]["latitude"]).'","'.strval($result["se_corner"]["longitude"]).'","'.strval($result["se_corner"]["latitude"]).'"';
         $ret = implode("\n", $ret);
