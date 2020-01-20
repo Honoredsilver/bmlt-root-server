@@ -414,15 +414,18 @@ function parse_redirect(
             $keys = c_comdef_meeting::GetFullTemplate();
             
             if (isset($keys) && is_array($keys) && count($keys)) {
-                $result2 = array ('"key","description"');
+                $handle = fopen('php://memory', 'rw');
+                fputcsv($handle, array("key", "description"));
             
                 foreach ($keys as $key) {
                     if (($key['visibility'] != 1) && ($key['key'] != 'published') && ($key['key'] != 'shared_group_id_bigint')) {
-                        $result2[] = '"'.$key['key'].'","'.$key['field_prompt'].'"';
+                        fputcsv($handle, array($key['key'], $key['field_prompt']));;
                     }
                 }
-                
-                $result2 = implode("\n", $result2);
+
+                fseek($handle, 0);
+                $result2 = stream_get_contents($handle);
+                fclose($handle);
                 
                 if (isset($http_vars['xml_data'])) {
                     $result = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
@@ -442,7 +445,7 @@ function parse_redirect(
             $meeting_key = trim($http_vars['meeting_key']);
             $values = c_comdef_meeting::GetAllValuesForKey($meeting_key);
             if (isset($values) && is_array($values) && count($values)) {
-                $result2 = array ('"'.$meeting_key.'","ids"');
+                $result2 = array(array($meeting_key, "ids"));
             
                 foreach ($values as $value => $ids) {
                     if (($meeting_key == 'formats') && isset($http_vars['specific_formats']) && trim($http_vars['specific_formats'])) {
@@ -485,13 +488,14 @@ function parse_redirect(
 
                     $ids = explode('\t', $ids);
                     $ids = trim(implode("\t", $ids));
-                    $result2[] = '"'.$value.'","'.$ids.'"';
+                    $result2[] = array($value, $ids);
                 }
                 
                 $result3 = array();
                 
                 foreach ($result2 as $resultRow) {
-                    list ( $key, $value ) = explode(',', $resultRow);
+                    $key = $resultRow[0];
+                    $value = $resultRow[1];
                     
                     $value = explode("\t", trim($value, '"'));
                     $oldValue = explode("\t", array_key_exists($key, $result3) ? $result3[$key] : "");
@@ -500,15 +504,16 @@ function parse_redirect(
                     $value = trim(implode("\t", $value));
                     $result3[$key] = $value;
                 }
-                
-                $result2 = array();
+
+                $handle = fopen('php://memory', 'rw');
                 foreach ($result3 as $key => $value) {
                     $key = str_replace('&APOS&', ',', trim($key, '"'));
-                    
-                    $result2[] = "\"$key\",\"$value\"";
+                    fputcsv($handle, array($key, $value));
                 }
-                        
-                $result2 = implode("\n", $result2);
+
+                fseek($handle, 0);
+                $result2 = stream_get_contents($handle);
+                fclose($handle);
             }
             
             if (isset($http_vars['xml_data'])) {
