@@ -1279,6 +1279,7 @@ class c_comdef_admin_ajax_handler
     
         if (isset($in_http_vars['data_field_key']) && $in_http_vars['data_field_key']) {
             // At this point, we have everything in a CSV. We separate out just the field we want.
+            // TODO fix csv parsing
             $temp_keyed_array = array();
             $result = explode("\n", $result);
             $keys = array_shift($result);
